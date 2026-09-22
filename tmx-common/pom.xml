@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>tmx</artifactId>
+        <groupId>org.tmx</groupId>
+        <version>${revision}</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>tmx-common</artifactId>
+    <packaging>pom</packaging>
+
+    <description>
+        common 通用模块
+    </description>
+
+    <modules>
+        <module>tmx-common-bom</module>
+        <module>tmx-common-social</module>
+        <module>tmx-common-core</module>
+        <module>tmx-common-doc</module>
+        <module>tmx-common-excel</module>
+        <module>tmx-common-job</module>
+        <module>tmx-common-log</module>
+        <module>tmx-common-mail</module>
+        <module>tmx-common-mybatis</module>
+        <module>tmx-common-oss</module>
+        <module>tmx-common-redis</module>
+        <module>tmx-common-satoken</module>
+        <module>tmx-common-security</module>
+        <module>tmx-common-sms</module>
+        <module>tmx-common-elasticsearch</module>
+        <module>tmx-common-web</module>
+        <module>tmx-common-translation</module>
+        <module>tmx-common-sensitive</module>
+        <module>tmx-common-json</module>
+        <module>tmx-common-encrypt</module>
+        <module>tmx-common-push</module>
+        <module>tmx-common-liteflow</module>
+        <module>tmx-common-mqtt</module>
+        <module>tmx-common-ai</module>
+        <module>tmx-common-mcp</module>
+    </modules>
+
+</project>

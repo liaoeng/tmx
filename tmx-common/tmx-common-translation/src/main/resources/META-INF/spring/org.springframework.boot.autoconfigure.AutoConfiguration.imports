@@ -1,0 +1,6 @@
+org.tmx.common.translation.config.TranslationConfig
+org.tmx.common.translation.core.impl.DeptNameTranslationImpl
+org.tmx.common.translation.core.impl.DictTypeTranslationImpl
+org.tmx.common.translation.core.impl.OssUrlTranslationImpl
+org.tmx.common.translation.core.impl.UserNameTranslationImpl
+org.tmx.common.translation.core.impl.NicknameTranslationImpl

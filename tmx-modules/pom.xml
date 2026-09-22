@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>tmx</artifactId>
+        <groupId>org.tmx</groupId>
+        <version>${revision}</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>tmx-modules</artifactId>
+    <packaging>pom</packaging>
+
+    <description>
+        tmx-modules 业务模块
+    </description>
+
+    <modules>
+        <module>tmx-demo</module>
+        <module>tmx-gen</module>
+        <module>tmx-job</module>
+        <module>tmx-system</module>
+        <module>tmx-workflow</module>
+        <module>tmx-ai</module>
+    </modules>
+
+</project>

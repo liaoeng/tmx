@@ -1,0 +1,2 @@
+org.tmx.common.json.config.JacksonConfig
+org.tmx.common.json.config.JsonEnhancementConfig

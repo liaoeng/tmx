@@ -1,0 +1,4 @@
+org.tmx.common.web.config.CaptchaConfig
+org.tmx.common.web.config.FilterConfig
+org.tmx.common.web.config.I18nConfig
+org.tmx.common.web.config.ResourcesConfig

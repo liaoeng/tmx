@@ -1,0 +1,3 @@
+org.tmx.common.push.config.MessageAutoConfiguration
+org.tmx.common.push.config.MessageSseConfiguration
+org.tmx.common.push.config.MessageWebSocketConfiguration
