@@ -54,7 +54,5 @@ nbdist/
 application-local.yml
 application-ga.yml
 
-# Local runtime configuration (copy from *.example.yml)
-**/src/main/resources/application*.yml
-!**/src/main/resources/application*.example.yml
+# Runtime logs
 /logs/

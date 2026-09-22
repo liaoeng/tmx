@@ -10,7 +10,7 @@
 
 启动顺序：**数据库 / Redis → 后端 → 前端**。先跑通基础管理功能，再按需接入对象存储、调度中心、监控中心和 AI 服务。
 
-Before the first build, copy `tmx-admin/src/main/resources/application.example.yml` to `application.yml` and `application-dev.example.yml` to `application-dev.yml`, then enter your local database and Redis settings. For optional modules, copy their `application*.example.yml` files to matching `application*.yml` names. Local runtime configuration is excluded from Git.
+Before the first build, copy `tmx-admin/src/main/resources/application.example.yml` to `application.yml` and `application-dev.example.yml` to `application-dev.yml`, then enter your local database and Redis settings. For optional modules, copy their `application*.example.yml` files to matching `application*.yml` names. Check all committed settings before using this template outside a development environment.
 
 ### 1. 检查 Java 环境
 
