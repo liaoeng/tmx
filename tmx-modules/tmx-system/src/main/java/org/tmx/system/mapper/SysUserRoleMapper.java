@@ -1,0 +1,28 @@
+package org.tmx.system.mapper;
+
+import cn.hutool.core.convert.Convert;
+import org.tmx.common.mybatis.core.mapper.BaseMapperPlus;
+import org.tmx.system.domain.SysUserRole;
+
+import java.util.List;
+
+/**
+ * 用户与角色关联表 数据层
+ *
+ */
+public interface SysUserRoleMapper extends BaseMapperPlus<SysUserRole, SysUserRole> {
+
+    /**
+     * 根据角色ID查询关联的用户ID列表
+     *
+     * @param roleId 角色ID
+     * @return 关联到指定角色的用户ID列表
+     */
+    default List<Long> selectUserIdsByRoleId(Long roleId) {
+        return this.lambda()
+            .select(SysUserRole::getUserId)
+            .eq(SysUserRole::getRoleId, roleId)
+            .objs(Convert::toLong);
+    }
+
+}

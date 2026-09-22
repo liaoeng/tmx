@@ -1,0 +1,3 @@
+org.tmx.common.encrypt.config.EncryptorAutoConfiguration
+org.tmx.common.encrypt.config.ApiDecryptAutoConfiguration
+

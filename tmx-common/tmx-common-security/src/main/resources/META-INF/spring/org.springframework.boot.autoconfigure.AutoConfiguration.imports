@@ -1,0 +1,2 @@
+org.tmx.common.security.handler.AllUrlHandler
+org.tmx.common.security.config.SecurityConfig

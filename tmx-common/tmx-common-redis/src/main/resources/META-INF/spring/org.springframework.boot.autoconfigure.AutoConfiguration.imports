@@ -1,0 +1,5 @@
+org.tmx.common.redis.config.RedisConfig
+org.tmx.common.redis.config.CacheConfig
+org.tmx.common.redis.config.IdempotentConfig
+org.tmx.common.redis.config.RateLimiterConfig
+org.tmx.common.redis.config.Lock4jConfig
