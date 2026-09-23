@@ -45,8 +45,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 用户信息
- *
+ * 用户管理接口，负责接收参数并委托用户、角色及部门服务处理。
  */
 @Validated
 @RequiredArgsConstructor
@@ -87,10 +86,10 @@ public class SysUserController extends BaseController {
     }
 
     /**
-     * 导入数据
+     * 导入用户表格，并由导入监听器处理已有用户是否更新。
      *
-     * @param file          导入文件
-     * @param updateSupport 是否更新已存在数据
+     * @param file          上传的用户表格
+     * @param updateSupport true 时更新已存在的用户
      */
     @Log(title = "用户管理", businessType = BusinessType.IMPORT)
     @SaCheckPermission("system:user:import")
@@ -113,7 +112,7 @@ public class SysUserController extends BaseController {
     }
 
     /**
-     * 获取用户信息
+     * 获取当前登录用户资料及会话中的角色、菜单权限。
      *
      * @return 当前登录用户信息、角色与权限集合
      */
@@ -122,6 +121,7 @@ public class SysUserController extends BaseController {
         UserInfoVo userInfoVo = new UserInfoVo();
         LoginUser loginUser = LoginHelper.getLoginUser();
 
+        // 本人资料不应被当前列表的数据范围过滤掉；仅在这次读取中忽略过滤。
         SysUserVo user = DataPermissionHelper.ignore(() -> userService.selectUserById(loginUser.getUserId()));
         if (ObjectUtil.isNull(user)) {
             return R.fail("没有权限访问用户数据!");
@@ -133,10 +133,10 @@ public class SysUserController extends BaseController {
     }
 
     /**
-     * 根据用户编号获取详细信息
+     * 返回用户编辑信息；未提供用户 ID 时只返回新增表单所需的可选角色。
      *
-     * @param userId 用户ID
-     * @return 用户详情、角色与岗位信息
+     * @param userId 用户主键，缺省表示准备新增用户
+     * @return 用户详情及可选角色、岗位信息
      */
     @SaCheckPermission("system:user:query")
     @GetMapping(value = {"/", "/{userId}"})
@@ -274,9 +274,9 @@ public class SysUserController extends BaseController {
     }
 
     /**
-     * 解锁用户
+     * 清除用户密码错误次数缓存，以解除登录锁定。
      *
-     * @param userId 用户ID
+     * @param userId 待解锁用户的主键
      * @return 操作结果
      */
     @SaCheckPermission("system:user:edit")

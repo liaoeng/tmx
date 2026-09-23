@@ -29,7 +29,6 @@ import java.util.List;
 /**
  * 数据权限拦截器
  *
- * @version 3.5.0
  */
 @Slf4j
 public class PlusDataPermissionInterceptor extends BaseMultiTableInnerInterceptor implements InnerInterceptor {
@@ -166,7 +165,6 @@ public class PlusDataPermissionInterceptor extends BaseMultiTableInnerIntercepto
      */
     @Override
     public Expression buildTableExpression(Table table, Expression where, String whereSegment) {
-        // 只有新版数据权限处理器才会执行到这里
         final MultiDataPermissionHandler handler = (MultiDataPermissionHandler) dataPermissionHandler;
         return handler.getSqlSegment(table, where, whereSegment);
     }

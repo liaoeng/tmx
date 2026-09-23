@@ -15,8 +15,7 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 
 /**
- * 用户权限处理
- *
+ * 汇总用户的角色标识、菜单权限及各接口可用的数据范围角色。
  */
 @RequiredArgsConstructor
 @Service
@@ -26,10 +25,10 @@ public class SysPermissionServiceImpl implements ISysPermissionService, Permissi
     private final ISysMenuService menuService;
 
     /**
-     * 获取角色数据权限
+     * 获取用户的角色标识；超级管理员使用固定角色标识。
      *
-     * @param userId 用户id
-     * @return 角色权限信息
+     * @param userId 用户主键
+     * @return 用户可用的角色标识集合
      */
     @Override
     public Set<String> getRolePermission(Long userId) {
@@ -44,10 +43,10 @@ public class SysPermissionServiceImpl implements ISysPermissionService, Permissi
     }
 
     /**
-     * 获取菜单数据权限
+     * 获取菜单与按钮权限；超级管理员拥有通配权限。
      *
-     * @param userId 用户id
-     * @return 菜单权限信息
+     * @param userId 用户主键
+     * @return 用户可用的权限标识集合
      */
     @Override
     public Set<String> getMenuPermission(Long userId) {
@@ -75,11 +74,12 @@ public class SysPermissionServiceImpl implements ISysPermissionService, Permissi
         List<Long> roleIds = StreamUtils.toList(roles, RoleDTO::getRoleId);
         Map<Long, Set<String>> permsRoleIds = menuService.selectMenuPermsByRoleIds(roleIds);
         Map<String, List<Long>> rolePermsMap = new LinkedHashMap<>();
-        permsRoleIds.forEach((roleId, perms) ->
-            perms.forEach(perm ->
-                rolePermsMap.computeIfAbsent(perm, key -> new ArrayList<>()).add(roleId)
-            )
-        );
+        for (Map.Entry<Long, Set<String>> rolePermissions : permsRoleIds.entrySet()) {
+            Long roleId = rolePermissions.getKey();
+            for (String permission : rolePermissions.getValue()) {
+                rolePermsMap.computeIfAbsent(permission, key -> new ArrayList<>()).add(roleId);
+            }
+        }
         return rolePermsMap;
     }
 }
