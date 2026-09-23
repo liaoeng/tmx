@@ -39,7 +39,7 @@ public class XcxAuthStrategy implements IAuthStrategy {
     private final SysLoginService loginService;
 
     /**
-     * 执行微信小程序登录，并根据 openid 构建小程序用户登录态。
+     * 演示微信小程序登录流程；应用密钥和 openid 用户绑定仍为占位逻辑，不能直接用于实际登录。
      *
      * @param body   登录请求体
      * @param client 当前客户端配置
@@ -51,10 +51,10 @@ public class XcxAuthStrategy implements IAuthStrategy {
         ValidatorUtils.validate(loginBody);
         // xcxCode 为 小程序调用 wx.login 授权后获取
         String xcxCode = loginBody.getXcxCode();
-        // 多个小程序识别使用
+        // 请求中的 appid 用于选择小程序应用。
         String appid = loginBody.getAppid();
 
-        // 校验 appid + appsrcret + xcxCode 调用登录凭证校验接口 获取 session_key 与 openid
+        // 使用小程序凭证换取 openid；clientSecret 当前仍是占位值。
         AuthRequest authRequest = new AuthWechatMiniProgramRequest(AuthConfig.builder()
             .clientId(appid).clientSecret("自行填写密钥 可根据不同appid填入不同密钥")
             .ignoreCheckRedirectUri(true).ignoreCheckState(true).build());
@@ -70,9 +70,9 @@ public class XcxAuthStrategy implements IAuthStrategy {
         } else {
             throw new ServiceException(resp.getMsg());
         }
-        // 框架登录不限制从什么表查询 只要最终构建出 LoginUser 即可
+        // 绑定用户查询尚未实现，启用该登录方式前必须补齐。
         SysUserVo user = loadUserByOpenid(openid);
-        // 此处可根据登录用户的数据不同 自行创建 loginUser 属性不够用继承扩展就行了
+        // 将查询结果写入小程序登录态；当前结果仍是占位对象。
         XcxLoginUser loginUser = new XcxLoginUser();
         loginUser.setUserId(user.getUserId());
         loginUser.setUsername(user.getUserName());
@@ -95,21 +95,20 @@ public class XcxAuthStrategy implements IAuthStrategy {
     }
 
     /**
-     * 按 openid 查询小程序绑定用户。
+     * 小程序绑定用户查询占位方法：当前未执行真实查询。
      *
      * @param openid 小程序用户唯一标识
-     * @return 绑定的系统用户信息
+     * @return 当前仅返回空的用户占位对象
      */
     private SysUserVo loadUserByOpenid(String openid) {
-        // 使用 openid 查询绑定用户 如未绑定用户 则根据业务自行处理 例如 创建默认用户
-        // todo 自行实现 userService.selectUserByOpenid(openid);
+        // TODO：按 openid 查询绑定用户，按产品规则处理首次登录。
         SysUserVo user = new SysUserVo();
         if (ObjectUtil.isNull(user)) {
             log.info("登录用户：{} 不存在.", openid);
-            // todo 用户不存在 业务逻辑自行实现
+            // TODO：拒绝未绑定用户，或按产品规则完成注册。
         } else if (SystemConstants.DISABLE.equals(user.getStatus())) {
             log.info("登录用户：{} 已被停用.", openid);
-            // todo 用户已被停用 业务逻辑自行实现
+            // TODO：拒绝已停用用户登录。
         }
         return user;
     }

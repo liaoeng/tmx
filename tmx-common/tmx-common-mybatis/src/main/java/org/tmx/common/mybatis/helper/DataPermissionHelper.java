@@ -15,7 +15,6 @@ import java.util.function.Supplier;
 /**
  * 数据权限助手
  *
- * @version 3.5.0
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 @SuppressWarnings("unchecked")
@@ -106,7 +105,7 @@ public class DataPermissionHelper {
      * 获取数据权限上下文
      *
      * @return 存储在SaStorage中的Map对象，用于存储数据权限相关的上下文信息
-     * @throws NullPointerException 如果数据权限上下文类型异常，则抛出NullPointerException
+     * @throws IllegalStateException 如果数据权限上下文类型异常，则抛出NullPointerException
      */
     public static Map<String, Object> getContext() {
         SaStorage saStorage = SaHolder.getStorage();

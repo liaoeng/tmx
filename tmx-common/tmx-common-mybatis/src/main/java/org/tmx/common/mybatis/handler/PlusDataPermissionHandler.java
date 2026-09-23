@@ -39,9 +39,7 @@ import java.util.*;
 import java.util.function.Function;
 
 /**
- * 数据权限过滤
- *
- * @version 3.5.0
+ * 根据接口权限和当前用户角色，为 SQL 增加数据范围过滤条件。
  */
 @Slf4j
 public class PlusDataPermissionHandler {
@@ -71,7 +69,7 @@ public class PlusDataPermissionHandler {
     public Expression getSqlSegment(Expression where, boolean isSelect) {
         try {
             LoginUser currentUser = currentUser();
-            // 如果是超级管理员或租户管理员，则不过滤数据
+            // 仅超级管理员跳过数据范围过滤；普通角色仍按接口权限计算可见数据。
             if (LoginHelper.isSuperAdmin()) {
                 return where;
             }
@@ -89,17 +87,18 @@ public class PlusDataPermissionHandler {
                 return parenthesis;
             }
         } catch (JSQLParserException e) {
-            throw new ServiceException("数据权限解析异常 => " + e.getMessage());
+            throw new ServiceException("数据权限解析异常 => " + e.getMessage(), e);
         } finally {
             DataPermissionHelper.removePermission();
         }
     }
 
     /**
-     * 构建数据过滤条件的 SQL 语句
+     * 根据可用角色拼接数据范围：查询取并集，更新和删除取交集；注解可覆盖连接方式。
      *
-     * @param dataPermission 数据权限注解
-     * @param isSelect       标志当前操作是否为查询操作，查询操作和更新或删除操作在处理过滤条件时会有不同的处理方式
+     * @param dataPermission Mapper 上声明的数据权限列及模板变量
+     * @param user           当前登录用户，用于筛选具备接口权限的角色
+     * @param isSelect       true 表示查询，false 表示更新或删除
      * @return 构建的数据过滤条件的 SQL 语句
      * @throws ServiceException 如果角色的数据范围异常或者 key 与 value 的长度不匹配，则抛出 ServiceException 异常
      */
@@ -311,25 +310,25 @@ public class PlusDataPermissionHandler {
     }
 
     /**
-     * 根据映射语句 ID 或类名获取对应的 DataPermission 注解对象
+     * 读取当前 Mapper 调用在数据权限上下文中设置的注解。
      *
-     * @return DataPermission 注解对象，如果不存在则返回 null
+     * @return 当前数据权限注解；未声明时返回 null
      */
     public DataPermission getDataPermission() {
         return DataPermissionHelper.getPermission();
     }
 
     /**
-     * 检查给定的映射语句 ID 是否有效，即是否能够找到对应的 DataPermission 注解对象
+     * 判断当前 Mapper 调用是否没有数据权限注解。
      *
-     * @return 如果找到对应的 DataPermission 注解对象，则返回 false；否则返回 true
+     * @return 未声明数据权限注解时返回 true
      */
     public boolean invalid() {
         return getDataPermission() == null;
     }
 
     /**
-     * 对所有null变量找不到的变量返回默认值
+     * SpEL 变量为 null 或不存在时返回不可匹配的默认值。
      */
     @AllArgsConstructor
     private static class NullSafeStandardEvaluationContext extends StandardEvaluationContext {
@@ -358,7 +357,7 @@ public class PlusDataPermissionHandler {
     }
 
     /**
-     * 对所有null变量找不到的变量返回默认值 委托模式 将不需要处理的方法委托给原处理器
+     * 属性读取结果为 null 时返回默认值，其余操作委托给原访问器。
      */
     @AllArgsConstructor
     private static class NullSafePropertyAccessor implements PropertyAccessor {
