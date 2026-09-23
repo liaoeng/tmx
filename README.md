@@ -10,7 +10,7 @@
 
 启动顺序：**数据库 / Redis → 后端 → 前端**。先跑通基础管理功能，再按需接入对象存储、调度中心、监控中心和 AI 服务。
 
-Before the first build, copy `tmx-admin/src/main/resources/application.example.yml` to `application.yml` and `application-dev.example.yml` to `application-dev.yml`, then enter your local database and Redis settings. For optional modules, copy their `application*.example.yml` files to matching `application*.yml` names. Check all committed settings before using this template outside a development environment.
+仓库已有 `application.yml` 和 `application-dev.yml`，启动时读取的是这些实际配置文件。对应的 `*.example.yml` 仅供新环境参考或重新生成配置，不会自动参与启动；缺少实际配置文件时，再复制同名示例并去掉 `.example`。运行前核对数据库、Redis 等连接地址和凭据，不要沿用其他环境的配置。
 
 ### 1. 检查 Java 环境
 
@@ -35,7 +35,7 @@ java -version
 
 1. 启动 MySQL 和 Redis。
 2. **仅首次创建空库时**，创建 `tmx` 数据库并导入 `script/sql/tmx.sql`、`script/sql/tmx_workflow.sql`。工作流当前默认启用，已有数据库不要重复导入。完整操作见 [数据库初始化](#数据库初始化)。
-3. 检查 [application-dev.yml](tmx-admin/src/main/resources/application-dev.example.yml) 中的数据库 URL、用户名、密码，以及 Redis 地址、端口、密码。不要直接沿用其他环境的地址。
+3. 检查 [application-dev.yml](tmx-admin/src/main/resources/application-dev.yml) 中的数据库 URL、用户名及 Redis 连接。应用默认使用 `tmx_dev` 数据库账号；在系统环境或 IDE 运行配置中设置 `TMX_DB_PASSWORD`，修改用户环境变量后重启 IDE。按实际部署调整 `TMX_DB_USERNAME`。不要让应用使用远程 `root`，也不要将 MySQL、Redis 端口直接向公网开放。
 4. 基础启动不需要先启用 SnailJob、Snail AI 或监控中心；使用相应功能时再部署服务并调整配置。
 
 ### 3. 构建并启动后端

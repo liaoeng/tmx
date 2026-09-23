@@ -101,8 +101,8 @@ spring:
 
           # rewriteBatchedStatements=true 批处理优化 大幅提升批量插入更新删除性能(对数据库有性能损耗 使用批量操作应考虑性能问题)
           url: jdbc:mysql://127.0.0.1:3306/tmx?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8&autoReconnect=true&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true
-          username: root
-          password: ''
+          username: ${TMX_DB_USERNAME:tmx_dev}
+          password: ${TMX_DB_PASSWORD}
 #        # 从库数据源
 #        slave:
 #          lazy: true
