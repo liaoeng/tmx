@@ -56,3 +56,6 @@ application-ga.yml
 
 # Runtime logs
 /logs/
+
+# 部署环境凭据
+/script/docker/.env

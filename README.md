@@ -35,8 +35,31 @@ java -version
 
 1. 启动 MySQL 和 Redis。
 2. **仅首次创建空库时**，创建 `tmx` 数据库并导入 `script/sql/tmx.sql`、`script/sql/tmx_workflow.sql`。工作流当前默认启用，已有数据库不要重复导入。完整操作见 [数据库初始化](#数据库初始化)。
-3. 检查 [application-dev.yml](tmx-admin/src/main/resources/application-dev.yml) 中的数据库 URL、用户名及 Redis 连接。应用默认使用 `tmx_dev` 数据库账号；在系统环境或 IDE 运行配置中设置 `TMX_DB_PASSWORD`，修改用户环境变量后重启 IDE。按实际部署调整 `TMX_DB_USERNAME`。不要让应用使用远程 `root`，也不要将 MySQL、Redis 端口直接向公网开放。
+3. 检查 [application-dev.yml](tmx-admin/src/main/resources/application-dev.yml) 中的数据库与 Redis 连接。应用默认使用 `tmx_dev` 数据库账号；在系统环境或 IDE 运行配置中设置 `TMX_DB_PASSWORD` 和 `TMX_REDIS_PASSWORD`，修改用户环境变量后重启 IDE。开发环境默认使用下文的 SSH 隧道端口；本地直连可通过 `TMX_DB_PORT=3306`、`TMX_REDIS_PORT=6379` 覆盖。
 4. 基础启动不需要先启用 SnailJob、Snail AI 或监控中心；使用相应功能时再部署服务并调整配置。
+
+#### 远程数据库通过 SSH 隧道连接
+
+远程开发时先启动隧道，再启动后端。SSH 可从任意来源 IP 进行密钥认证；MySQL、Redis 只允许服务器本机访问，不需要每天更新 IP 白名单。
+
+服务器管理员需要配置专用账号 `tmx_tunnel`：仅允许公钥认证、本地端口转发到 `127.0.0.1:3306` 和 `127.0.0.1:6379`，禁止命令行登录。客户端私钥放在 `%USERPROFILE%\.ssh\tmx_db_tunnel`，私钥及密码不得提交到仓库。首次连接前，通过可信渠道核对服务器 SSH 主机指纹；脚本不会自动信任陌生主机或忽略指纹变化。
+
+当前开发机已配置专用密钥和 `TMX_SSH_HOST` 用户环境变量，在项目根目录运行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\script\bin\start-db-tunnel.ps1
+```
+
+其他环境可用 `-ServerHost` 指定实际服务器 IP 或域名，用 `-IdentityFile` 指定私钥。请保持隧道窗口运行，另开终端或使用 IDEA 启动后端；按 Ctrl+C 可关闭隧道。断网或电脑重启后，重新运行脚本即可。脚本检测到相同目标和端口的隧道已运行时，会显示其进程 ID 并退出，避免重复启动。
+
+| 本机访问地址 | 隧道目的地址 | 用途 |
+| --- | --- | --- |
+| `127.0.0.1:13306` | 服务器 `127.0.0.1:3306` | 后端及数据库工具连接 MySQL |
+| `127.0.0.1:16379` | 服务器 `127.0.0.1:6379` | 后端及 Redis 工具连接 Redis |
+
+IDE 数据库工具填写本机地址和上述端口即可，不要同时开启工具自带的第二层 SSH 隧道。MySQL 用户名为 `tmx_dev`，密码使用 `TMX_DB_PASSWORD`；Redis 密码使用 `TMX_REDIS_PASSWORD`。SSH 隧道本身不会替应用填写数据库密码。
+
+开发配置和示例默认使用隧道端口；生产配置和示例默认使用服务器本机的 3306、6379 端口。连接地址、端口和用户名分别可通过 `TMX_DB_HOST`、`TMX_DB_PORT`、`TMX_DB_USERNAME`、`TMX_REDIS_HOST`、`TMX_REDIS_PORT` 覆盖。密码变量没有默认值，必须在启动环境中设置。Spring 启动时自动解析这些变量，不会生成或保存密码。
 
 ### 3. 构建并启动后端
 
@@ -372,11 +395,13 @@ java -jar tmx-admin/target/tmx-admin.jar
 # 构建调度中心及其依赖
 .\mvnw.cmd -Pprod -pl tmx-extend/tmx-snailjob-server -am -DskipTests package
 
-# 显式启用测试；实际执行用例受 pom.xml 中 Tag 分组配置影响
-.\mvnw.cmd -Pdev -Dmaven.test.skip=false -DskipTests=false test
+# 编译、执行全部回归测试并打包（无需数据库和 Redis）
+.\mvnw.cmd -P 'dev,gen' -pl tmx-admin -am verify
 ```
 
-根 POM 默认设置了 `maven.test.skip=true`。打包成功不等于测试已执行。Linux / macOS 将上述 `mvnw.cmd` 替换为 `./mvnw`。
+根 POM 默认执行测试，不再按 dev/prod 标签筛掉普通测试；显式传入 `-DskipTests` 仍会跳过执行。Linux / macOS 将上述 `mvnw.cmd` 替换为 `./mvnw`。
+
+GitHub Actions 在 push / pull request 时执行相同 Maven 检查，并在临时容器中验证 MySQL 首次初始化、应用账号、Redis 认证与主应用生产配置启动。回归用例包含分页响应结构、空列表、排序转换和非法排序输入；测试报告作为工作流产物保留。容器验证需要 Linux Docker 环境，单元测试不依赖实际服务。
 
 主应用产物为 `tmx-admin/target/tmx-admin.jar`。生产启动时核对激活环境与配置，示例：
 
@@ -385,6 +410,8 @@ java -jar tmx-admin/target/tmx-admin.jar --spring.profiles.active=prod
 ```
 
 ### Docker 与 Nginx
+
+完整步骤见 [部署说明](script/docker/README.md)。Compose 面向 Linux 主机网络，主应用明确使用 `prod` 配置和本机 3306/6379；开发机仍可使用 SSH 隧道的 13306/16379。密码从 `.env` 或进程环境注入，缺少必填密码时配置检查会失败。
 
 [script/docker/docker-compose.yml](script/docker/docker-compose.yml) 提供数据库、缓存、对象存储、Nginx、两个主应用实例及扩展服务的部署参考；[Nginx 配置](script/docker/nginx/conf/nginx.conf) 包含静态页面、业务接口和扩展服务代理。
 
@@ -402,7 +429,7 @@ docker build -t tmx/tmx-server:6.0.0 tmx-admin
 4. 单实例部署时，修改 Nginx upstream，避免继续代理到未运行的 `8081` 实例。
 5. 生产接口前缀为 `/prod-api`，Nginx 转发时去掉此前缀；SSE 需要关闭代理缓冲，WebSocket 需要正确转发 Upgrade 头。
 
-示例凭据不是环境部署的最终配置。尤其是 MinIO 示例密码当前为 `tmx123`，不足配置注释所要求的 8 位；启用前应设置满足要求的密码，并同步对象存储配置。不要将“已有 Compose 文件”理解为无需调整即可启动完整系统。
+MySQL 空数据目录首次启动会创建应用账号并导入基础与工作流 SQL，已有数据目录不会重新导入、创建账号或修改密码。Redis 与主应用使用同一个密码变量；主应用等待数据库和缓存健康后启动。MinIO 可通过 `TMX_MINIO_PASSWORD` 配置密码，并需同步系统中的对象存储设置。
 
 ## 业务开发与扩展
 

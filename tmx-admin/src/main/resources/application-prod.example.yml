@@ -103,7 +103,7 @@ spring:
           driverClassName: com.mysql.cj.jdbc.Driver
 
           # rewriteBatchedStatements=true 批处理优化 大幅提升批量插入更新删除性能(对数据库有性能损耗 使用批量操作应考虑性能问题)
-          url: jdbc:mysql://localhost:3306/tmx?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8&autoReconnect=true&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true
+          url: jdbc:mysql://${TMX_DB_HOST:127.0.0.1}:${TMX_DB_PORT:3306}/tmx?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8&autoReconnect=true&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true
           username: ${TMX_DB_USERNAME:tmx_dev}
           password: ${TMX_DB_PASSWORD}
 #        # 从库数据源
@@ -152,13 +152,13 @@ spring:
 spring.data:
   redis:
     # 地址
-    host: localhost
+    host: ${TMX_REDIS_HOST:127.0.0.1}
     # 端口，默认为6379
-    port: 6379
+    port: ${TMX_REDIS_PORT:6379}
     # 数据库索引
     database: 0
-    # redis 密码必须配置
-    password: ''
+    # Spring 从环境变量读取密码，修改后需重新启动应用
+    password: ${TMX_REDIS_PASSWORD}
     # 连接超时时间
     timeout: 10s
     # 是否开启ssl

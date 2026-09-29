@@ -73,8 +73,8 @@
         <maven-surefire-plugin.version>3.5.5</maven-surefire-plugin.version>
         <!-- 统一版本号管理：Maven3.X需要，Maven4.0之后已原生支持 -->
         <flatten-maven-plugin.version>1.7.3</flatten-maven-plugin.version>
-        <!-- 打包默认跳过测试 -->
-        <maven.test.skip>true</maven.test.skip>
+        <!-- 默认执行测试，显式传入 -DskipTests 时才跳过执行 -->
+        <maven.test.skip>false</maven.test.skip>
     </properties>
 
     <profiles>
@@ -521,8 +521,7 @@
                 <version>${maven-surefire-plugin.version}</version>
                 <configuration>
                     <argLine>-Dfile.encoding=UTF-8</argLine>
-                    <!-- 根据打包环境执行对应的@Tag测试方法 -->
-                    <groups>${profiles.active}</groups>
+                    <!-- 默认执行全部测试，不再按部署环境过滤普通回归用例。 -->
                     <!-- 排除标签 -->
                     <excludedGroups>exclude</excludedGroups>
                 </configuration>

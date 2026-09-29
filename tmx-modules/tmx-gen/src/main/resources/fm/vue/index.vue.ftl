@@ -371,6 +371,7 @@ import {
 } from '@/api/${moduleName}/${businessName}';
 import { ${BusinessName}Form, ${BusinessName}Query, ${BusinessName}VO } from '@/api/${moduleName}/${businessName}/types';
 import { useLoading } from '@/hooks/async/useLoading';
+import { useLatestRequest } from '@/hooks/async/useLatestRequest';
 import { useFormDialog } from '@/hooks/dialog/useFormDialog';
 <#if needAddDateRange>
 import { useDateRangeQuery } from '@/hooks/form/useDateRangeQuery';
@@ -401,6 +402,7 @@ const ${statusField}InactiveValue = <#if statusColumn.javaType == "Boolean">fals
 const ${businessName}List = ref<${BusinessName}VO[]>([]);
 const buttonLoading = ref(false);
 const { loading, withLoading } = useLoading(true);
+const { runLatest } = useLatestRequest();
 const { showSearch } = useSearchToggle();
 const total = ref(0);
 <#list columns as column>
@@ -472,7 +474,7 @@ const { dialog, resetForm: reset, openDialog, showDialog, closeDialog } = useFor
 
 /** 查询${functionName}列表 */
 const getList = async () => {
-  await withLoading(async () => {
+  await withLoading(() => runLatest(async () => {
 <#if needAddDateRange>
     let params = queryParams.value;
 <#list columns as column>
@@ -480,13 +482,14 @@ const getList = async () => {
 params = apply${column.capJavaField}DateRange(params);
 </#if>
 </#list>
-    const res = await list${BusinessName}(params);
+    return list${BusinessName}(params);
 <#else>
-    const res = await list${BusinessName}(queryParams.value);
+    return list${BusinessName}(queryParams.value);
 </#if>
+  }, res => {
     ${businessName}List.value = res.data?.rows;
     total.value = res.data?.total;
-  });
+  }));
 };
 
 /** 取消按钮 */
