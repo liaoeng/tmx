@@ -414,6 +414,7 @@ import {
 } from '@/api/${moduleName}/${businessName}';
 import { ${BusinessName}Form, ${BusinessName}Query, ${BusinessName}VO } from '@/api/${moduleName}/${businessName}/types';
 import { useLoading } from '@/hooks/async/useLoading';
+import { useLatestRequest } from '@/hooks/async/useLatestRequest';
 import { useFormDialog } from '@/hooks/dialog/useFormDialog';
 <#if needAddDateRange>
 import { useDateRangeQuery } from '@/hooks/form/useDateRangeQuery';
@@ -451,6 +452,7 @@ const all${BusinessName}Options = ref<${BusinessName}Option[]>([]);
 const buttonLoading = ref(false);
 const { showSearch } = useSearchToggle();
 const { loading, setLoading, withLoading } = useLoading();
+const { runLatest } = useLatestRequest();
 
 const queryFormRef = ref<ElFormInstance>();
 const ${businessName}FormRef = ref<ElFormInstance>();
@@ -524,7 +526,7 @@ const { dialog, resetForm: reset, openDialog, showDialog, closeDialog } = useFor
 
 /** 查询${functionName}列表 */
 const getList = async () => {
-  await withLoading(async () => {
+  await withLoading(() => runLatest(async () => {
 <#if needAddDateRange>
     let params = queryParams.value;
 <#list columns as column>
@@ -532,15 +534,16 @@ const getList = async () => {
 params = apply${column.capJavaField}DateRange(params);
 </#if>
 </#list>
-    const res = await list${BusinessName}(params);
+    return list${BusinessName}(params);
 <#else>
-    const res = await list${BusinessName}(queryParams.value);
+    return list${BusinessName}(queryParams.value);
 </#if>
+  }, res => {
     const data = handleTree<${BusinessName}VO>(res.data, '${treeCode}', '${treeParentCode}');
     if (data) {
       ${businessName}List.value = data;
     }
-  });
+  }));
 };
 
 /** 查询${functionName}下拉树结构 */

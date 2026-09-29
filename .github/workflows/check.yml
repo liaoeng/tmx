@@ -1,0 +1,66 @@
+name: 后端与部署自动检查
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # 仅供临时 CI 容器使用，与实际部署凭据无关。
+      TMX_MYSQL_ROOT_PASSWORD: ci-root-password
+      TMX_DB_USERNAME: tmx_dev
+      TMX_DB_PASSWORD: ci-app-password
+      TMX_REDIS_PASSWORD: ci-redis-password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: 编译、回归测试与打包
+        run: bash mvnw -B -Pdev,gen -pl tmx-admin -am verify
+      - name: 确认关键回归测试没有被跳过
+        run: test -f tmx-admin/target/surefire-reports/TEST-org.tmx.test.PageContractTest.xml
+      - name: 校验部署变量与容器配置
+        run: |
+          docker compose -f script/docker/docker-compose.yml config --quiet
+          for required in TMX_MYSQL_ROOT_PASSWORD TMX_DB_PASSWORD TMX_REDIS_PASSWORD; do
+            if env -u "$required" docker compose -f script/docker/docker-compose.yml config --quiet >/dev/null 2>&1; then
+              echo "缺少 $required 时配置应拒绝启动"
+              exit 1
+            fi
+          done
+      - name: 验证空库初始化及应用账号连接
+        run: |
+          docker compose -f script/docker/docker-compose.yml up -d --wait --wait-timeout 180 mysql redis
+          docker compose -f script/docker/docker-compose.yml exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=tcp -h127.0.0.1 -u"$MYSQL_USER" tmx -e "SELECT COUNT(*) FROM sys_user; SELECT COUNT(*) FROM flow_definition;"'
+      - name: 使用部署镜像验证生产配置启动
+        run: |
+          docker build -t tmx/tmx-server:6.0.0 tmx-admin
+          docker compose -f script/docker/docker-compose.yml up -d tmx-server1
+          for attempt in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:8080/auth/code > /tmp/tmx-response.json && jq -e '.code == 200' /tmp/tmx-response.json >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo '主应用未在限定时间内返回正常验证码响应'
+          exit 1
+      - name: 失败时输出容器日志
+        if: failure()
+        run: docker compose -f script/docker/docker-compose.yml logs --tail 150 mysql redis tmx-server1
+      - name: 清理本次 CI 容器
+        if: always()
+        run: docker compose -f script/docker/docker-compose.yml down
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: 后端测试结果
+          path: tmx-admin/target/surefire-reports/

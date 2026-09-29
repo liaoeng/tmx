@@ -1,3 +1,15 @@
+# 面向 Linux 主机部署；密码由同目录 .env 或当前进程环境提供。
+x-app-environment: &app-environment
+  TZ: Asia/Shanghai
+  SPRING_PROFILES_ACTIVE: prod
+  TMX_DB_HOST: 127.0.0.1
+  TMX_DB_PORT: 3306
+  TMX_DB_USERNAME: ${TMX_DB_USERNAME:-tmx_dev}
+  TMX_DB_PASSWORD: ${TMX_DB_PASSWORD:?请设置 TMX_DB_PASSWORD}
+  TMX_REDIS_HOST: 127.0.0.1
+  TMX_REDIS_PORT: 6379
+  TMX_REDIS_PASSWORD: ${TMX_REDIS_PASSWORD:?请设置 TMX_REDIS_PASSWORD}
+
 services:
   mysql:
     image: mysql:8.4.9
@@ -6,22 +18,34 @@ services:
       # 时区上海
       TZ: Asia/Shanghai
       # root 密码
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${TMX_MYSQL_ROOT_PASSWORD:?请设置 TMX_MYSQL_ROOT_PASSWORD}
       # 初始化数据库(后续的初始化sql会在这个库执行)
       MYSQL_DATABASE: tmx
-    ports:
-      - "3306:3306"
+      # 官方镜像仅在空数据目录首次初始化时创建应用账号。
+      MYSQL_USER: ${TMX_DB_USERNAME:-tmx_dev}
+      MYSQL_PASSWORD: ${TMX_DB_PASSWORD:?请设置 TMX_DB_PASSWORD}
     volumes:
       # 数据挂载
       - /docker/mysql/data/:/var/lib/mysql/
       # 配置挂载
       - /docker/mysql/conf/:/etc/mysql/conf.d/
+      # 仅首次初始化执行；已有数据目录不会重新导入。
+      - ../sql/tmx.sql:/docker-entrypoint-initdb.d/10-tmx.sql:ro
+      - ../sql/tmx_workflow.sql:/docker-entrypoint-initdb.d/20-workflow.sql:ro
     command:
+      --bind-address=127.0.0.1
+      --mysqlx-bind-address=127.0.0.1
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_general_ci
       --explicit_defaults_for_timestamp=true
       --lower_case_table_names=1
-    privileged: true
+    healthcheck:
+      test: ["CMD-SHELL", 'MYSQL_PWD="$$MYSQL_PASSWORD" mysql --protocol=tcp -h127.0.0.1 -u"$$MYSQL_USER" tmx -e "SELECT 1 FROM sys_user LIMIT 1" >/dev/null 2>&1']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
     network_mode: "host"
 
   nginx-web:
@@ -48,18 +72,22 @@ services:
   redis:
     image: redis:8.6.3
     container_name: redis
-    ports:
-      - "6379:6379"
     environment:
       # 时区上海
       TZ: Asia/Shanghai
+      TMX_REDIS_PASSWORD: ${TMX_REDIS_PASSWORD:?请设置 TMX_REDIS_PASSWORD}
     volumes:
       # 配置文件
-      - /docker/redis/conf:/redis/config:rw
+      - ./redis/conf/redis.conf:/redis/config/redis.conf:ro
       # 数据文件
       - /docker/redis/data/:/redis/data/:rw
-    command: "redis-server /redis/config/redis.conf"
-    privileged: true
+    command: ["redis-server", "/redis/config/redis.conf", "--requirepass", "${TMX_REDIS_PASSWORD:?请设置 TMX_REDIS_PASSWORD}", "--bind", "127.0.0.1"]
+    healthcheck:
+      test: ["CMD-SHELL", 'REDISCLI_AUTH="$$TMX_REDIS_PASSWORD" redis-cli -h 127.0.0.1 ping | grep -qx PONG']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
     network_mode: "host"
 
   minio:
@@ -77,7 +105,7 @@ services:
       # 管理后台用户名
       MINIO_ROOT_USER: tmx
       # 管理后台密码，最小8个字符
-      MINIO_ROOT_PASSWORD: tmx123
+      MINIO_ROOT_PASSWORD: ${TMX_MINIO_PASSWORD:-tmx-local-storage}
       # https需要指定域名
       #MINIO_SERVER_URL: "https://xxx.com:9000"
       #MINIO_BROWSER_REDIRECT_URL: "https://xxx.com:9001"
@@ -100,8 +128,7 @@ services:
     image: tmx/tmx-server:6.0.0
     container_name: tmx-server1
     environment:
-      # 时区上海
-      TZ: Asia/Shanghai
+      <<: *app-environment
       SERVER_PORT: 8080
       SNAIL_JOB_PORT: 28080
       SNAIL_AI_PORT: 38080
@@ -110,15 +137,19 @@ services:
       - /docker/server1/logs/:/tmx/server/logs/
       # skywalking 探针
 #      - /docker/skywalking/agent/:/tmx/skywalking/agent
-    privileged: true
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
     network_mode: "host"
 
   tmx-server2:
     image: tmx/tmx-server:6.0.0
     container_name: tmx-server2
     environment:
-      # 时区上海
-      TZ: Asia/Shanghai
+      <<: *app-environment
       SERVER_PORT: 8081
       SNAIL_JOB_PORT: 28081
       SNAIL_AI_PORT: 38081
@@ -127,7 +158,12 @@ services:
       - /docker/server2/logs/:/tmx/server/logs/
       # skywalking 探针
 #      - /docker/skywalking/agent/:/tmx/skywalking/agent
-    privileged: true
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
     network_mode: "host"
 
   tmx-monitor-admin:
