@@ -32,6 +32,8 @@ curl --fail http://127.0.0.1:8080/auth/code
 
 MySQL 官方镜像首次初始化会创建 `tmx` 数据库及应用账号，账号权限限制在 `tmx` 库；按文件名顺序执行基础 SQL 和工作流 SQL。初始化数据仍沿用现有模板内容，登录后应调整默认账号和权限。
 
+两个初始化 SQL 均通过 `SET NAMES utf8mb4` 指定导入连接字符集。服务端字符集配置不能替代客户端连接设置，否则中文可能被错误解码，出现乱码或 `Data too long`。CI 会校验工作流表及导入后的中文昵称。
+
 Redis 从仓库挂载配置文件，密码由启动参数注入，与应用读取的 `TMX_REDIS_PASSWORD` 一致。宿主机 `/docker/redis/data` 挂载到官方镜像的工作目录 `/data`，由入口脚本设置 Redis 用户的写入权限；已有持久化文件仍保存在原宿主机目录。应用容器已接收数据库用户名、密码、主机与端口，以及 Redis 主机、端口和密码。
 
 `depends_on` 使用健康检查决定首次启动顺序，不代表运行期间依赖故障会自动恢复所有业务请求。应用进程异常退出后由重启策略重新拉起。[Docker 启动顺序说明](https://docs.docker.com/compose/how-tos/startup-order/)
