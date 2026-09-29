@@ -40,7 +40,13 @@ jobs:
       - name: 验证空库初始化及应用账号连接
         run: |
           docker compose -f script/docker/docker-compose.yml up -d --wait --wait-timeout 180 mysql redis
-          docker compose -f script/docker/docker-compose.yml exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=tcp -h127.0.0.1 -u"$MYSQL_USER" tmx -e "SELECT COUNT(*) FROM sys_user; SELECT COUNT(*) FROM flow_definition;"'
+          docker compose -f script/docker/docker-compose.yml exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --default-character-set=utf8mb4 --protocol=tcp -h127.0.0.1 -u"$MYSQL_USER" tmx -e "SELECT COUNT(*) FROM sys_user; SELECT COUNT(*) FROM flow_definition;"'
+          # 用 ASCII 账号条件读取中文昵称，检查初始化连接是否正确解码 UTF-8。
+          nickname=$(docker compose -f script/docker/docker-compose.yml exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --default-character-set=utf8mb4 --protocol=tcp -h127.0.0.1 -u"$MYSQL_USER" --batch --skip-column-names tmx -e "SELECT nick_name FROM sys_user WHERE user_name = 0x74657374;"')
+          if [ "$nickname" != '本部门及以下 密码666666' ]; then
+            echo '初始化中文昵称不符合预期，请检查 SQL 导入连接的字符集'
+            exit 1
+          fi
       - name: 验证 Redis 数据写入与持久化
         run: |
           docker compose -f script/docker/docker-compose.yml exec -T redis sh -ec '

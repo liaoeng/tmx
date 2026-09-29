@@ -1,3 +1,6 @@
+-- 每个初始化文件可能使用独立连接，均需明确 UTF-8 字符集。
+SET NAMES utf8mb4;
+
 -- ----------------------------
 -- 0、warm-flow-all.sql，地址：https://gitee.com/dromara/warm-flow/blob/master/sql/mysql/warm-flow-all.sql
 -- ----------------------------
