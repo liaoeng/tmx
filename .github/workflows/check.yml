@@ -65,8 +65,19 @@ jobs:
       - name: 失败时输出容器日志
         if: failure()
         run: |
-          docker compose -f script/docker/docker-compose.yml ps --all
-          docker compose -f script/docker/docker-compose.yml logs --tail 150 mysql redis tmx-server1
+          mkdir -p "$RUNNER_TEMP/tmx-deployment"
+          # 诊断命令失败时也保存错误文本，并继续收集其他诊断。
+          docker compose -f script/docker/docker-compose.yml ps --all 2>&1 | tee "$RUNNER_TEMP/tmx-deployment/containers.txt" || true
+          docker compose -f script/docker/docker-compose.yml logs --no-color --tail 200 mysql redis tmx-server1 2>&1 | tee "$RUNNER_TEMP/tmx-deployment/container-logs.txt" || true
+          docker compose -f script/docker/docker-compose.yml ps --all -q mysql redis tmx-server1 | xargs -r docker inspect --format '{{.Name}} {{json .State}}' 2>&1 | tee "$RUNNER_TEMP/tmx-deployment/health.txt" || true
+      - name: 保存部署诊断日志
+        uses: actions/upload-artifact@v5
+        if: failure()
+        with:
+          name: 部署诊断日志
+          path: ${{ runner.temp }}/tmx-deployment/
+          if-no-files-found: ignore
+          retention-days: 7
       - name: 清理本次 CI 容器
         if: always()
         run: docker compose -f script/docker/docker-compose.yml down
